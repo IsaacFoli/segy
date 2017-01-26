@@ -1,9 +1,5 @@
 echo ""
 echo "The following command extract coordinates from a segy file"
-echo "Executing:"
-echo "segy-change -f DATA/TEST_isa.sgy -dump_xy SOURCE"
-pause "continue."
-segy-change -f DATA/TEST_isa.sgy -dump_xy SOURCE
 echo ""
 echo "If the coordinates are in arc seconds they can be converted in degrees with"
 echo "Executing:"
