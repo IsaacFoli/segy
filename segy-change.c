@@ -714,9 +714,15 @@ void print_usage(int argc, char **argv) {
 	fprintf(stdout, "\nsegy-change: a progam to read and optionally change\n"
 			"the contents of segy seismic data files.\n\n");
 	fprintf(stdout,
+			"If you use this software for scientific publication, please cite:\n"
+			"\n"
+			"G. Stanghellini, G. Carrara\n"
+			"Segy-change: The swiss army knife for the SEG-Y files\n"
+			"SoftwareX, Volume 6, 2017, Pages 42–47, DOI:10.1016/j.softx.2017.01.003"
+
 			"Copyright (C) 2009, Giuseppe Stanghellini (1), Gabriela Carrara (2).\n"
 					"  (1) Istituto di Scienze Marine, Geologia Marina, CNR, Bologna, Italy\n"
-					"  (2) LNEG – Marine Geology Department, Portugal\n\n"
+					"  (2) Independent Researcher, Monte San Pietro, Italy\n\n"
 					"This program comes with ABSOLUTELY NO WARRANTY! see GPLV3.\n"
 					"This is free software, and you are welcome to redistribute it\n"
 					"under certain conditions; for details see the GPLV3 license\n"
@@ -752,7 +758,7 @@ void print_usage(int argc, char **argv) {
 					"                           obtained by the -dump_trace_fields switch,\n"
 					"                           with or without the -use_names switch.\n"
 					"   -dump_xy              : Print x and y location to stdout.\n"
-					"    SOURCE|RECEIVER        the word SOURCE or RECEIVER must be given, according"
+					"    SOURCE|RECEIVER        the word SOURCE or RECEIVER must be given, according\n"
 					"                           to locations to print.\n"
 					"   -vertical_stack num   : Do a vertical stack, summing num samples together\n"
 					"   -add_xy               : Add coordinates (in m, feet or arcsec) to trace\n"
@@ -882,16 +888,17 @@ void print_usage(int argc, char **argv) {
 					"\n"
 					"   segy-change -f in.segy -all -o out.segy -use_names\n"
 					"               -only_traces_with NUMBER_OF_SAMPLES_IN_THIS_TRACE:10000\n"
-					" - To make a postscript plot of the first two shot-gather, assuming\n"
-					"   the file long at most 250 total traces, skipping all remaining data:\n"
+					" - To make a postscript plot of the first two shot-gather, with 25 traces\n"
+			        "   per cm:\n"
 					"\n"
 					"   segy-change -f in.segy -record 100 101 -trace 1 120\n"
-					"               -do_ps A4,250,0.005 -only_ntraces 250\n"
+					"               -do_ps A4,25,0.01\n"
 					"\n"
 					" - To view interactively the segy:\n"
 					"\n"
 					"   segy-change -f in.segy -view\n"
-					"\n");
+					"\n"
+			);
 
 	printf("For your information this machine is ");
 	if (is_little_endian())
@@ -904,6 +911,16 @@ void print_usage(int argc, char **argv) {
 		printf(", as it should be.\n\n");
 	else
 		printf(" and that's wrong! it should be 4 bytes.\n\n");
+
+	printf( "***********************************************************************\n"
+			"If you use this software for scientific publication, please cite:\n"
+			"G. Stanghellini, G. Carrara\n"
+			"Segy-change: The swiss army knife for the SEG-Y files\n"
+			"SoftwareX, Volume 6, 2017, Pages 42–47, DOI:10.1016/j.softx.2017.01.003\n"
+			"***********************************************************************\n"
+			);
+
+
 	exit(0);
 }
 

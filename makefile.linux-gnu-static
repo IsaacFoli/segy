@@ -1,4 +1,4 @@
-LIBS = -lm -ldl -lSDL2 -lgomp -lSDL2_gfx -lpthread
+LIBS = -lm -ldl -lSDL2 -lSDL2_gfx -lpthread
 LIBSPATH =
 LDLIBS = $(LIBS)
 DEPLIBS =
@@ -6,27 +6,27 @@ CC = gcc
 C++ = g++
 CPP = cc -E
 LD = ld
-CFLAGS = -O3 -std=c99 -fopenmp
+CFLAGS = -O3 -std=c99
 CCLINK = $(CC)
 CXXLINK = $(CXX)
 OBJS = segy-change.o
 
 default:
 	@$(MAKE) -f makefile.linux-gnu-static segy-change \
-	"CFLAGS = -O3 -std=c99 -fopenmp -DWITH_SDL" 
+	"CFLAGS = -O3 -std=c99 -DWITH_SDL" 
 
 nosdl:
 	@$(MAKE) -f makefile.linux-gnu-static segy-change \
-	"CFLAGS = -O3 -std=c99 -fopenmp" \
-	"LIBS =  -lm -lc -lgomp" 
+	"CFLAGS = -O3 -std=c99 " \
+	"LIBS =  -lm -lc" 
 
 debug:
 	@$(MAKE) -f makefile.linux-gnu-static segy-change \
-	"CFLAGS = -g -std=c99 -fopenmp -DWITH_SDL" 
+	"CFLAGS = -g -std=c99 -DWITH_SDL" 
 
 segy-change: $(OBJS) $(DEPLIBS)
 	$(RM) $@
-	$(CCLINK) -fopenmp -o $@ $(LDOPTIONS) $(OBJS) $(LOCAL_LIBRARIES) $(LDLIBS) $(LIBS) $(EXTRA_LOAD_FLAGS) -static
+	$(CCLINK) -o $@ $(LDOPTIONS) $(OBJS) $(LOCAL_LIBRARIES) $(LDLIBS) $(LIBS) $(EXTRA_LOAD_FLAGS) -static
 	
 clean:
 	$(RM) *.CKP *.ln *.BAK *.bak *.o core errs *~ *.a segy-change
