@@ -6,7 +6,9 @@ If you use this software for scientific publication, please cite:
 
 G. Stanghellini, G. Carrara
 Segy-change: The swiss army knife for the SEG-Y files
-SoftwareX, Volume 6, 2017, Pages 42–47, DOI:10.1016/j.softx.2017.01.003Copyright (C) 2009, Giuseppe Stanghellini (1), Gabriela Carrara (2).
+SoftwareX, Volume 6, 2017, Pages 42–47, DOI:10.1016/j.softx.2017.01.003
+
+Copyright (C) 2016, Giuseppe Stanghellini (1), Gabriela Carrara (2).
   (1) Istituto di Scienze Marine, Geologia Marina, CNR, Bologna, Italy
   (2) Independent Researcher, Monte San Pietro, Italy
 

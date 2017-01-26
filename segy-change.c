@@ -718,9 +718,9 @@ void print_usage(int argc, char **argv) {
 			"\n"
 			"G. Stanghellini, G. Carrara\n"
 			"Segy-change: The swiss army knife for the SEG-Y files\n"
-			"SoftwareX, Volume 6, 2017, Pages 42–47, DOI:10.1016/j.softx.2017.01.003"
+			"SoftwareX, Volume 6, 2017, Pages 42–47, DOI:10.1016/j.softx.2017.01.003\n"
 
-			"Copyright (C) 2009, Giuseppe Stanghellini (1), Gabriela Carrara (2).\n"
+			"Copyright (C) 2016, Giuseppe Stanghellini (1), Gabriela Carrara (2).\n"
 					"  (1) Istituto di Scienze Marine, Geologia Marina, CNR, Bologna, Italy\n"
 					"  (2) Independent Researcher, Monte San Pietro, Italy\n\n"
 					"This program comes with ABSOLUTELY NO WARRANTY! see GPLV3.\n"
