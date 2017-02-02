@@ -30,6 +30,8 @@
 #define _FILE_OFFSET_BITS 64
 // #define WITH_SDL moved into makefile
 #define WITH_OPENMP
+#define _XOPEN_SOURCE
+#define _DEFAULT_SOURCE
 
 #include <stdlib.h>
 #include <stddef.h>
@@ -39,6 +41,8 @@
 #include <unistd.h>
 #include <math.h>
 #include <sys/types.h>
+#include <arpa/inet.h>
+#include <ctype.h>
 
 #ifdef WITH_OPENMP
 #include "omp.h"
@@ -112,10 +116,12 @@ int take_parm(int argc, char **argv, char *parm, int num_args) {
 			{
 				for(int j = i + 1; j < i + 1 + num_args; j++)
 					if(argv[j][0] == '-' && argv[j][1] != 0)
+					{
 						if(num_args > 1)
 							prerror_and_exit("Error: switch %s requires %d additional parameters\n", parm, num_args);
 						else
 							prerror_and_exit("Error: switch %s requires %d additional parameter\n", parm, num_args);
+					}
 				return i;
 			}
 			else
@@ -543,7 +549,6 @@ float get_ieee(void *i) {
 }
 
 void set_short(short value, void *i) {
-	short j;
 	if (is_little_endian())
 		swab((const char*) &value, (unsigned char*) i, sizeof(short));
 	else
@@ -551,7 +556,6 @@ void set_short(short value, void *i) {
 }
 
 void set_ushort(unsigned short value, void *i) {
-	unsigned short j;
 	if (is_little_endian())
 		swab((const char*) &value, (unsigned char*) i, sizeof(unsigned short));
 	else
@@ -560,7 +564,6 @@ void set_ushort(unsigned short value, void *i) {
 
 void set_int(int value, void *i) {
 	unsigned char *_i, *_j;
-	int j;
 	if (is_little_endian()) {
 		_j = (unsigned char*) i;
 		_i = (unsigned char*) &value;
@@ -630,7 +633,7 @@ char *get_str_val(unsigned char *buf_data, char *value, int offset,
 	{
 		float _p;
 		_p = *((float*) (buf_data + offset));
-		sprintf(value, "%f", get_int(&_p));
+		sprintf(value, "%f", get_ieee(&_p));
 		return value;
 		break;
 	}
@@ -927,7 +930,6 @@ void print_usage(int argc, char **argv) {
 void get_source_xy(SEGY_file *file, double *x, double *y,
 		int *unit_of_measure_1_feet_or_meters_2_arcsec) {
 	double mult_scalar;
-	short munit;
 	SEGY_trace_header *header = &file->trace_header;
 	mult_scalar = GET_SEGYTRACEH_Coord_mult_scalar(header);
 	if (mult_scalar == 0) mult_scalar = 1;
@@ -966,7 +968,6 @@ void read_xy(char *fname) {
 
 	int _idum;
 	double _fdum;
-	double lon_or_x, lat_or_y;
 	char tmp_c[1024000];
 
 	/* Find out how many records we have.
@@ -1355,13 +1356,7 @@ void ibm2ieee(void *to, const void *from, int len) {
 /* Convert from segy_file->format to double
  */
 double get_val(SEGY_file *segy_file, void *addr, int idx) {
-	double a16;
-	int power;
-	int valore;
-	double factor, mantissa;
 	float value;
-	unsigned char *chr = (unsigned char *) addr;
-	int i;
 
 	if (GET_SEGYH_Data_sample_format_code(&segy_file->header) == 5)
 		return (double) get_ieee((float*) addr + idx); /* IEEE 754 */
@@ -1399,12 +1394,6 @@ double get_val(SEGY_file *segy_file, void *addr, int idx) {
 /* Convert from double to segy_file->format and store the conversion into *addr + idx.
  */
 void set_val(double value_to_convert, SEGY_file *segy_file, void *addr, int idx) {
-	double a16;
-	int power;
-	int valore;
-	double factor, mantissa;
-	unsigned char *chr = (unsigned char *) addr;
-	int i;
 
 	switch (GET_SEGYH_Data_sample_format_code(&segy_file->header)) {
 	case 1:
@@ -1505,8 +1494,8 @@ void copy_segy_trace_header(SEGY_file *source, SEGY_file *dest) {
 
 void copy_segy_trace_data(SEGY_file *source, SEGY_file *dest) {
 	int i;
-	if (dest->trace_data = (unsigned char *) realloc(dest->trace_data,
-			trace_data_length(dest))) {
+	if ((dest->trace_data = (unsigned char *) realloc(dest->trace_data,
+			trace_data_length(dest)))) {
 		int start = 0, end = n_samples;
 //		if (skip_nsamples != -1)
 //			start = skip_nsamples;
@@ -1585,11 +1574,7 @@ int open_segy(SEGY_file *segy_file, char *fname, char *mode, off_t initial_seek)
 			strncpy(segy_file->fname, "stdout", 6);
 			segy_file->fname[6] = 0;
 		} else {
-#ifdef __CYGWIN__
 			segy_file->fp = (FILE*)fopen(fname, mode);
-#else
-			segy_file->fp = (FILE *) fopen64(fname, mode);
-#endif
 			segy_file->fname = (char *) malloc(strlen(fname) + 1);
 			strncpy(segy_file->fname, fname, strlen(fname));
 			segy_file->fname[strlen(fname)] = 0;
@@ -1597,11 +1582,7 @@ int open_segy(SEGY_file *segy_file, char *fname, char *mode, off_t initial_seek)
 	}
 
 	if (segy_file->fp != NULL) {
-#ifdef __CYGWIN__
-		fseeko(segy_file->fp, initial_seek, SEEK_SET);
-#else
-		fseeko64(segy_file->fp, initial_seek, SEEK_SET);
-#endif
+		fseek(segy_file->fp, initial_seek, SEEK_SET);
 		return 0;
 	} else
 		return -1;
@@ -1687,11 +1668,7 @@ int get_segy_header(SEGY_file *segy_file, int verbose) {
 		int m_field_nr = 1;
 		char m_field[1000], m_fields[1000], value[1000];
 
-		printf("Segy header fields:\n",
-				GET_SEGYTRACEH_Trace_sequence_number_within_reel(
-						&segy_file->trace_header),
-				GET_SEGYTRACEH_Trace_number_within_field_record(
-						&segy_file->trace_header));
+		printf("Segy header fields:\n");
 		while (get_field(header_fields_to_dump, m_field_nr, m_fields, ',')) {
 			if (m_field_nr > 1)
 				printf("; ");
@@ -1772,7 +1749,7 @@ int get_segy_header(SEGY_file *segy_file, int verbose) {
 
 		int ii = 0;
 		while (stamp[ii]) {
-			stamp[ii] = ascii2ebcdic[stamp[ii]];
+			stamp[ii] = ascii2ebcdic[(int)stamp[ii]];
 			ii++;
 		}
 
@@ -1805,7 +1782,7 @@ int get_segy_header(SEGY_file *segy_file, int verbose) {
  */
 bool keep_trace(SEGY_file *segy_file, int rec_start, int rec_end,
 		int trace_start, int trace_end, int trace_offset) {
-	int field_segy_offset, jjj;
+	int field_segy_offset;
 	char field_segy_type;
 	int m_field_nr = 1;
 	char m_field[1000], m_fields[1000], value[1000], expected_value[1000];
@@ -1820,8 +1797,6 @@ bool keep_trace(SEGY_file *segy_file, int rec_start, int rec_end,
 		{
 		while (get_field(traces_fields_valid_values, m_field_nr, m_fields, ',')) {
 			get_field(m_fields, 1, m_field, ':');
-			jjj = get_parameter_index_by_offset(trace_header_types,
-					atoi(m_field));
 			field_segy_offset = atoi(m_field);
 			get_field(m_fields, 2, m_field, ':');
 			field_segy_type = m_field[0];
@@ -1830,10 +1805,10 @@ bool keep_trace(SEGY_file *segy_file, int rec_start, int rec_end,
 							field_segy_offset, field_segy_type))
 					!= atof(expected_value))
 			{
-				if(verbose >= 2) fprintf(stderr, "Discarding %d-th trace of %d-th record.\n",
+				if(verbose >= 2) fprintf(stderr, "Discarding trace #%d of record #%d because it contains %f and not %f.\n",
+   					tr_num, sh_num,
 						atof(get_str_val(segy_file->trace_header.HEADER, value,	field_segy_offset, field_segy_type))
-					    , atof(expected_value),
-						tr_num, sh_num);
+					    , atof(expected_value));
 				return false;
 			}
 			m_field_nr++;
@@ -1864,7 +1839,6 @@ void do_skip_ntraces() {
 
 int get_segy_trace(SEGY_file *segy_file, int verbose) {
 	int i;
-	int nb = 4;
 
 	int bytes_read;
 	bytes_read = fread(&segy_file->trace_header, 1, 240, segy_file->fp);
@@ -1908,12 +1882,12 @@ int get_segy_trace(SEGY_file *segy_file, int verbose) {
 			&& keep_trace(segy_file, rec_start, rec_end, trace_start,
 					trace_end, trace_offset)) {
 		printf("--------------------------- TRACE HEADER ------------------\n");
-		printf("Original field record number : %d\n", record_nr);
-		printf("Trace number within field record: %d\n", tr_nr_in_record);
-		printf("Trace sequence number within line : %d\n", tr_nr_in_line);
-		printf("Trace sequence number within reel : %d\n", tr_nr_in_reel);
+		printf("Original field record number : %ld\n", record_nr);
+		printf("Trace number within field record: %ld\n", tr_nr_in_record);
+		printf("Trace sequence number within line : %ld\n", tr_nr_in_line);
+		printf("Trace sequence number within reel : %ld\n", tr_nr_in_reel);
 		printf("Number of samples in this trace: %d\n", n_samples);
-		printf("Sample interval (microseconds) : %d\n", sample_interval);
+		printf("Sample interval (microseconds) : %ld\n", sample_interval);
 	}
 
 	segy_file->trace_data = (unsigned char *) realloc(segy_file->trace_data,
@@ -1961,11 +1935,11 @@ int get_segy_trace(SEGY_file *segy_file, int verbose) {
 	delay_time = GET_SEGYTRACEH_Delay_time_between_source_and_recording_time(&segy_file->trace_header);
 
 	if (verbose == 2 && keep_trace(segy_file, rec_start, rec_end, trace_start, trace_end, trace_offset))
-		printf("Rec/Seq/Num = %d/%d/%d\n", record_nr, tr_nr_in_reel, tr_nr_in_record);
+		printf("Rec/Seq/Num = %ld/%ld/%ld\n", record_nr, tr_nr_in_reel, tr_nr_in_record);
 
 	if (print_rec_seq_num &&
 			keep_trace(segy_file, rec_start, rec_end, trace_start,	trace_end, trace_offset))
-		printf("%d %d %d\n", record_nr, tr_nr_in_reel, tr_nr_in_record);
+		printf("%ld %ld %ld\n", record_nr, tr_nr_in_reel, tr_nr_in_record);
 
 	total_traces++;
 
@@ -2322,7 +2296,7 @@ void read_args(int argc, char **argv) {
 		while (!feof(f) && ii < 3200) {
 			c = fgetc(f);
 			if (c != '\n' && c != '\r')
-				my_ebcdic[ii++] = ascii2ebcdic[c];
+				my_ebcdic[ii++] = ascii2ebcdic[(int)c];
 		}
 		replace_ebcdic = true;
 		remove_parms(&argc, argv, _n, 2);
@@ -2593,7 +2567,7 @@ void do_change_trace() {
 			char field_segy_type;
 			char field_segy_value[1000];
 			int m_field_nr = 1;
-			char m_field[1000], m_fields[1000], value[1000], line[100000];
+			char m_field[1000], m_fields[1000], line[100000];
 			char all_fields[10000];
 			char _b0[100000], _b1[100000];
 
@@ -2832,18 +2806,11 @@ void do_plot_shots() {
 		}
 	}
 
-	int num_trace_within_record = GET_SEGYTRACEH_Field(&segy_file.trace_header,
-			trace_offset);
 	int num_record = GET_SEGYTRACEH_Original_field_record_number(
 			&segy_file.trace_header);
-	int every_one_trace = 1;
 	int every_one_record = ((num_traces / 10) + 5) / 10;
 	every_one_record *= 10;
 	if(every_one_record == 0) every_one_record = 1;
-
-	long _row = (num_record - rec_start)
-			* GET_SEGYH_Number_of_data_traces_per_record(&segy_file.header)
-			+ num_trace_within_record;
 
 	if ((((num_record % every_one_record) == 0 || every_one_record == 0)
 			&& num_record != actual_record) || actual_row == 0) {
@@ -3495,7 +3462,7 @@ int main(int argc, char **argv) {
 		if (get_segy_trace(&segy_file, verbose))
 		{
 			fprintf(stderr,
-					"Error while reading file at byte nr. %ld, record nr. %d, trace nr. %d\n",
+					"Error while reading file at byte nr. %ld, record nr. %ld, trace nr. %ld\n",
 					ftell(segy_file.fp),
 					total_records, total_traces);
 			break;
@@ -3522,20 +3489,20 @@ int main(int argc, char **argv) {
 	do_close_files();
 	if (scan)
 	{
-		fprintf(stderr, "Total records = %d\n", total_records);
-		fprintf(stderr, "Total traces = %d\n", total_traces);
+		fprintf(stderr, "Total records = %ld\n", total_records);
+		fprintf(stderr, "Total traces = %ld\n", total_traces);
 		if(min_num_samples == max_num_samples)
 		{
-			fprintf(stderr, "num_samples = %d\n", min_num_samples);
+			fprintf(stderr, "num_samples = %ld\n", min_num_samples);
 		}
 		else
 		{
-			fprintf(stderr, "min_num_samples = %d at record nr. %d, trace nr. %d\n",
+			fprintf(stderr, "min_num_samples = %ld at record nr. %ld, trace nr. %ld\n",
 				min_num_samples,
 				min_num_samples_rec_num,
 				min_num_samples_trace_num);
 
-			fprintf(stderr, "max_num_samples = %d at record nr. %d, trace nr. %d\n",
+			fprintf(stderr, "max_num_samples = %ld at record nr. %ld, trace nr. %ld\n",
 				max_num_samples,
 				max_num_samples_rec_num,
 				max_num_samples_trace_num);

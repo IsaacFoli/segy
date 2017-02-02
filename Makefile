@@ -6,23 +6,23 @@ CC = gcc
 C++ = g++
 CPP = cc -E
 LD = ld
-CFLAGS = -O3 -std=c99 -fopenmp
+CFLAGS = -O3 -fopenmp
 CCLINK = $(CC)
 CXXLINK = $(CXX)
 OBJS = segy-change.o
 
 default:
-	@$(MAKE) -f makefile.linux-gnu segy-change \
-	"CFLAGS = -O3 -std=c99 -fopenmp -DWITH_SDL"
+	@$(MAKE) segy-change \
+	"CFLAGS = -O3 -fopenmp -DWITH_SDL"
 
 nosdl:
-	@$(MAKE) -f makefile.linux-gnu segy-change \
-	"CFLAGS = -O3 -std=c99 -fopenmp" \
+	@$(MAKE) segy-change \
+	"CFLAGS = -O3 -fopenmp" \
 	"LIBS =  -lm -lc -lgomp"
 
 debug:
-	@$(MAKE) -f makefile.linux-gnu segy-change \
-	"CFLAGS = -g -std=c99 -fopenmp -DWITH_SDL"
+	@$(MAKE) segy-change \
+	"CFLAGS = -g -fopenmp -DWITH_SDL"
 
 segy-change: $(OBJS) $(DEPLIBS)
 	$(RM) $@
