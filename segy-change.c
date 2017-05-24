@@ -2792,6 +2792,7 @@ void do_plot_shots() {
 		st = (st + 5) / 10;
 		st = st * 10;
 		if(st < 1) st = 1;
+		int j;
 		for(int j = 0; j <= num_samples; j += st)
 		{
 			double _y = j * scale_y;
@@ -3100,9 +3101,6 @@ void DisplayData_DrawWaves() {
 	DisplayData_CheckZoomAndShift(false);
 
 	int i, j, y;
-	int _nwaves = num_waves;
-	if (_nwaves > width)
-		_nwaves = width;
 
 	SDL_FillRect(surface, NULL, 0xffffffff);
 	Uint32 *pixmap = (Uint32*) surface->pixels;
@@ -3113,8 +3111,11 @@ void DisplayData_DrawWaves() {
 				+ (double) first_sample)) * (double) num_waves;
 		y = j * surface->pitch / BPP;
 		for (i = BORDER_X_LEFT; i < width - BORDER_X_RIGHT; i++) {
-			pixmap[i + y] = waves_pixmap_lines[(long) ((double) (i
-					- BORDER_X_LEFT) * zoom_step_x + (double) first_wave + hy)];
+			if((long) ((double) (i - BORDER_X_LEFT) * zoom_step_x <= num_waves))
+				pixmap[i + y] = waves_pixmap_lines[(long) ((double) (i
+						- BORDER_X_LEFT) * zoom_step_x + (double) first_wave + hy)];
+			else
+				pixmap[i + y] = pixmap[i + (j - 1) * surface->pitch/BPP];
 		}
 //		memcpy(pixmap + y, waves_pixmap_lines[j * num_waves + first_wave], width * sizeof(Uint32));
 	}
@@ -3137,7 +3138,7 @@ void DisplayData_DrawWaves() {
 	char s[1024];
 	gfxPrimitivesSetFont(NULL, 0, 0);
 	color = 0x80000000;
-	for (j = BORDER_Y_UP + step; j < height - BORDER_Y_DOWN; j += step) {
+	for (j = BORDER_Y_UP; j < height - BORDER_Y_DOWN; j += step) {
 		double hy = ((long) ((double) (j - BORDER_Y_UP) * zoom_step_y
 				+ (double) first_sample));
 		sprintf(s, " %8.1lfms", delay_time + 1000 * hy * waves_sample_interval[first_wave]); // The first wave is used to set sample interval
@@ -3145,8 +3146,8 @@ void DisplayData_DrawWaves() {
 		stringColor(sdlRenderer, 0, j - 4, s, 0xff000000);
 	}
 
-	step = (height - BORDER_X_RIGHT - BORDER_X_LEFT - 1) / 10;
-	for (j = BORDER_X_LEFT + step; j < width - BORDER_X_RIGHT; j += step) {
+	step = (width - BORDER_X_RIGHT - BORDER_X_LEFT - 1) / 10;
+	for (j = BORDER_X_LEFT; j < width - BORDER_X_RIGHT; j += step) {
 		int trc = (long) ((double) (j - BORDER_X_LEFT) * zoom_step_x
 				+ (double) first_wave);
 
@@ -3155,10 +3156,12 @@ void DisplayData_DrawWaves() {
 
 		stringColor(sdlRenderer, j - (strlen(s) * 8) / 2, 10, s, 0xff000000);
 	}
+	stringColor(sdlRenderer, width / 2 - strlen(segy_file.fname) * 8 / 2,
+			height - BORDER_Y_DOWN / 2, segy_file.fname, 0xff000000);
 
 	SDL_DestroyTexture(bitmapTex);
 	SDL_RenderPresent(sdlRenderer);
-
+	while (SDL_PollEvent(&event)); // Empty the event queue
 }
 
 void DisplayData_CheckZoomAndShift(bool adapt) {
@@ -3420,11 +3423,11 @@ void DisplayData_Yield(bool exit) {
 					}
 				}
 			}
+			//while (SDL_PollEvent(&event)); // Empty the event queue
 			event.type = 0;
 			SDL_RenderCopy(sdlRenderer, bitmapTex, NULL, NULL);
 			SDL_RenderPresent(sdlRenderer);
 		}
-
 	}
 
 	return;
