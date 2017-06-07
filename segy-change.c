@@ -358,7 +358,7 @@ SEGY_file segy_file;
 bool only_traces_with, replace_ebcdic, plot_data, dump_fields, change_fields,
 		dump_header_fields, change_header_fields, shot_renumber, trace_renumber,
 		no_header, flip_endianess, add_xy, source_1_or_receiver_2,
-		print_rec_seq_num, dump_xy, use_names, scan, apply_correction,
+		print_rec_seq_num, dump_xy, use_names, scan, apply_correction, debias,
 		no_EBCDIC_stamp, enable_X11;
 char *fields_to_dump, *fields_to_change_fname, *add_coordinates_fname,
 		*header_fields_to_change, *header_fields_to_dump,
@@ -376,6 +376,7 @@ double actual_row;
 long actual_record;
 char my_ebcdic[3200];
 double trace_min_val, trace_max_val;
+double tmin = 1e30, tmax = -1e30;
 long total_records, total_traces, min_traces_per_records, max_traces_per_records, min_num_samples, max_num_samples;
 long min_num_samples_rec_num, max_num_samples_rec_num;
 long min_num_samples_trace_num, max_num_samples_trace_num;
@@ -789,6 +790,7 @@ void print_usage(int argc, char **argv) {
 					"                           measure in the proper format for each line.\n"
 					"   -do_op   +|-|*|/:VAL  : Do the given operation, for example to multiply all\n"
 					"                           trace values by 3.0 use: -do_op *:3.0\n"
+			        "   -debias               : Subtract from each trace (MAXVAL+MINVAL)/2\n"
 					"   -convert S|I|F|E      : Convert the trace encoding to the given format, where\n"
 					"                           S: short\n"
 					"                           I: integer\n"
@@ -1963,7 +1965,7 @@ int get_segy_trace(SEGY_file *segy_file, int verbose) {
 
 	/* Decode the trace data in double.
 	 */
-	if (dump || plot_data || scan || apply_correction || enable_X11) {
+	if (dump || plot_data || scan || apply_correction || debias || enable_X11) {
 		for (i = 0; i < n_samples; i++) {
 			segy_file->trace_data_double[i] = get_val(segy_file,
 					segy_file->trace_data, i);
@@ -1971,6 +1973,20 @@ int get_segy_trace(SEGY_file *segy_file, int verbose) {
 				trace_min_val = segy_file->trace_data_double[i];
 			if (trace_max_val < segy_file->trace_data_double[i])
 				trace_max_val = segy_file->trace_data_double[i];
+			if(debias)
+			{
+				if (tmin > segy_file->trace_data_double[i])
+					tmin = segy_file->trace_data_double[i];
+				if (tmax < segy_file->trace_data_double[i])
+					tmax = segy_file->trace_data_double[i];
+			}
+		}
+		if(debias)
+		{
+			double bias = (tmin + tmax) / 2.0;
+			for (i = 0; i < n_samples; i++) {
+				segy_file->trace_data_double[i] = segy_file->trace_data_double[i] - bias;
+			}
 		}
 	}
 
@@ -2098,7 +2114,7 @@ void setup() {
 	false;
 	dump_xy = shot_renumber = trace_renumber = false;
 	processed_traces = use_names = 0;
-	enable_X11 = no_header = plot_data = false;
+	debias = enable_X11 = no_header = plot_data = false;
 	trace_scale = 1.0;
 	page_format = 4;
 	trace_min_val = 1e100;
@@ -2159,6 +2175,10 @@ void read_args(int argc, char **argv) {
 	if ((_n = take_parm(argc, argv, "-scan", 0)))
 		remove_parms(&argc, argv, _n, 1),
 		scan = true;
+
+	if ((_n = take_parm(argc, argv, "-debias", 0)))
+		remove_parms(&argc, argv, _n, 1),
+		debias = true;
 
 	flip_endianess = false;
 	if ((_n = take_parm(argc, argv, "-flip_endianess", 0))) {
@@ -2688,6 +2708,14 @@ void do_change_trace() {
 				}
 			}
 		}
+		if(debias)
+		{
+			double bias = (tmin + tmax) / 2.0;
+			for (i = 0; i < n_samples; i++) {
+				SET_OUT_SAMPLE(GET_OUT_SAMPLE(i) - bias, i);
+			}
+		}
+
 	}
 }
 
